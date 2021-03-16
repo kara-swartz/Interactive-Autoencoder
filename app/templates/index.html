@@ -1,0 +1,362 @@
+{% extends "layout.html" %}
+
+{% block body %}
+  <!-- Create a bootstrap grid -->
+  <div class="container-fluid">
+    <div class="row">
+      <div id="first_graph"><button type="button" id="randomButton">Random</button></div>
+      <div class="col-md-auto align-self-center">
+          <button type="button" class="btn btn-dark" onclick="submitData()">Submit</button>
+          <!--  -->
+      </div>
+      <div id="second_graph"></div>
+      <div id="third_graph"></div>
+    </div>
+    <table class="table">
+      <caption>Dimensionality reduction quality measures. Mean squared error of distances</caption>
+      <thead>
+        <tr>
+          <th style="width: 15%" scope="col"></th>
+          <th scope="col">First projection</th>
+          <th scope="col">Second projection</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">All points</th>
+          <td>{{qm_mse_all_points_pr1}}</td>
+          <td id="mse_dist_all_2"></td>
+        </tr>
+        <tr>
+          <th scope="row">Selected points</th>
+          <td id="mse_dist_selected_1"></td>
+          <td id="mse_dist_selected_2"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+<script>
+
+  let model_url = '{{data.url_title|safe}}'
+
+  let graphData = {{data.output_data|safe}}
+    
+  // set the dimensions and margins of the graph
+  let margin = {top: 60, right: 30, bottom: 30, left: 60},
+      width = 650 - margin.left - margin.right, //650
+      height = 600 - margin.top - margin.bottom; //600
+  
+  // append the svg object to the body of the page
+  let svg = d3.select("#first_graph")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+  
+  // append the svg object to the body for second scatter plot
+  let svg2 = d3.select("#second_graph")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+  
+  // append the svg object to the body for third scatter plot
+  let svg3 = d3.select("#third_graph")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+  
+  // append the svg object to the body for fourf scatter plot
+  let svg4 = d3.select("#third_graph")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+  
+  // list of labels
+  let labels = d3.map(graphData, function(d){return(d.label)}).keys().sort();
+  
+  // color scale: one color for each group
+  let color = d3.scaleOrdinal()
+      .domain(labels)
+      .range(d3.schemeTableau10);
+  
+  // global varibal for brushed points
+  let selectedData = [];
+  
+  function drawGraph(data) {
+    
+    // add X axis
+    let x = d3.scaleLinear()
+      .domain(d3.extent(data, function(d) { return d.x; }))
+      .range([ 0, width ]);
+    svg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x)
+          );
+  
+    // add Y axis
+    let y = d3.scaleLinear()
+      .domain(d3.extent(data, function(d) { return d.y; }))
+      .range([ height, 0]);
+    svg.append("g")
+      .call(d3.axisLeft(y)
+          );  
+    
+    // add dots
+    let myCircle = svg.append('g')
+      .selectAll("circle")
+      .data(data)
+      .enter()
+      .append("circle")
+        .attr("class", function(d) { return "bubbles " + d.label })
+        .attr("cx", function (d) { return x(d.x); } )
+        .attr("cy", function (d) { return y(d.y); } )
+        .attr("id", function (d, i) { return i; } )
+        .attr("r", 5)
+        .style("fill", function (d) { return color(d.label) } )
+  
+     // add brushing
+    svg
+      .call( d3.brush()
+        .extent( [ [0,0], [width,height] ] )  // initialise the brush area: start at 0,0 and finishes at width,height: it means I select the whole graph area
+        .on("start brush", updateChart)       // each time the brush selection changes, trigger the 'updateChart' function
+        .on("end", filterData)                // get brushed points    
+      )
+  
+    // add legends
+    let size = 20
+  
+    svg.selectAll("mylegend")
+      .data(labels)
+      .enter()
+      .append("circle")
+        .attr("cx", 565)
+        .attr("cy", function(d,i){ return 10 + i*(size+5)}) // 100 is where the first dot appears. 25 is the distance between dots
+        .attr("r", 7)
+        .style("fill", function(d){ return color(d)}) 
+        .on("click", selectClass)   // call a function for one class selection
+  
+    // Add labels beside legend dots
+    svg.selectAll("mylabels")
+      .data(labels)
+      .enter()
+      .append("text")
+        .attr("x", 565 + size*.8)
+        .attr("y", function(d,i){ return i * (size + 5) + (size/2)}) // 100 is where the first dot appears. 25 is the distance between dots
+        .style("fill", function(d){ return color(d)})
+        .text(function(d){ return d})
+        .attr("text-anchor", "left")
+        .style("alignment-baseline", "middle")
+  
+    // one class selection and pushing the selected points into array
+    function selectClass(label) {
+      myCircle.classed("selected", function(d){ return d.label==label })
+      selectedData = [];    
+      d3.selectAll('.selected').each(function(d) {
+        selectedData.push(this.id);
+      });
+    } 
+  
+    // function that is triggered when brushing is performed
+    function updateChart() {
+      extent = d3.event.selection
+      myCircle.classed("selected", function(d){ return isBrushed(extent, x(d.x), y(d.y) ) } )
+    }
+  
+    function isBrushed(brush_coords, cx, cy) {
+         let x0 = brush_coords[0][0],
+             x1 = brush_coords[1][0],
+             y0 = brush_coords[0][1],
+             y1 = brush_coords[1][1];
+        return x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;   
+        // This return TRUE or FALSE depending on if the points is in the selected area
+    }
+    
+    // save brushed point into global variable
+    function filterData() {
+      if (!d3.event.selection) return;
+  
+      selectedData = [];    
+      d3.selectAll('.selected').each(function(d) {
+        selectedData.push(this.id);
+      });
+    }
+  
+    // select random points
+    d3.select("#randomButton").on("click", function(d) {
+        
+      let gen_id = []
+      for (let i = 0; i < 1000; i++) {
+          gen_id.push(data[Math.floor(Math.random() * data.length)])
+          };
+  
+      myCircle.classed("selected", function(d){ return gen_id.includes(d); }); 
+  
+      selectedData = [];    
+      d3.selectAll('.selected').each(function(d) {
+        selectedData.push(this.id);
+      });
+      })
+  }
+  
+  // Draw a second scatter plot
+  function drawGraph2(data) {
+  
+    // clear second scatter plot before updating
+    svg2.selectAll("*").remove();
+  
+    // add X axis
+    let x = d3.scaleLinear()
+      .domain(d3.extent(data, function(d) { return d.x; }))
+      .range([ 0, width ]);
+    svg2.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x)
+          );
+  
+    // add Y axis
+    let y = d3.scaleLinear()
+      .domain(d3.extent(data, function(d) { return d.y; }))
+      .range([ height, 0]);
+    svg2.append("g")
+      .call(d3.axisLeft(y)
+          );
+  
+    // add dots
+    let myCircle = svg2.append('g')
+      .selectAll("circle")
+      .data(data.filter(function(data) {return data.is_trained == 'yes'}))
+      .enter()
+      .append("circle")
+        .attr("cx", function (d) { return x(d.x); } )
+        .attr("cy", function (d) { return y(d.y); } )
+        .attr("r", 5)
+        .style("fill", "#69b3a2")
+        .style("fill", function (d) { return color(d.label) } )
+        .classed("projection", function (d) { return d.is_trained=='yes' } )
+  }
+  
+  // Draw a third scatter plot
+  function drawGraph3(data) {
+  
+    // clear third scatter plot before updating
+    svg3.selectAll("*").remove()
+  
+    // add X axis
+    let x = d3.scaleLinear()
+      .domain(d3.extent(data, function(d) { return d.x; }))
+      .range([ 0, width ]);
+    svg3.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x)
+          );
+  
+    // add Y axis
+    let y = d3.scaleLinear()
+      .domain(d3.extent(data, function(d) { return d.y; }))
+      .range([ height, 0]);
+    svg3.append("g")
+      .call(d3.axisLeft(y)
+          );
+  
+    // add dots
+    let myCircle = svg3.append('g')
+      .selectAll("circle")
+      .data(data)
+      .enter()
+      .append("circle")
+        .attr("cx", function (d) { return x(d.x); } )
+        .attr("cy", function (d) { return y(d.y); } )
+        .attr("r", 5)
+        .style("fill", "#69b3a2")
+        .style("fill", function (d) { return color(d.label) } )
+        .classed("projection", function (d) { return d.is_trained=='yes' } )
+  }
+  
+  // Draw a fourth scatter plot
+  function drawGraph4(data) {
+  
+  // clear fourth scatter plot before updating
+  svg4.selectAll("*").remove()
+    
+  let changedPoints = data.filter(function(points1){
+      // filter out points in plot 1 and plot 3
+      return !graphData.some(function(points2){
+          return points1.x === points2.x && points1.y === points2.y;
+      });
+  });
+  
+  // add X axis
+  let x = d3.scaleLinear()
+    .domain(d3.extent(changedPoints, function(d) { return d.x; }))
+    .range([ 0, width ]);
+  svg4.append("g")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x)
+        );
+  
+  // add Y axis
+  let y = d3.scaleLinear()
+    .domain(d3.extent(changedPoints, function(d) { return d.y; }))
+    .range([ height, 0]);
+  svg4.append("g")
+    .call(d3.axisLeft(y)
+        );
+  
+  // add dots
+  let myCircle = svg4.append('g')
+    .selectAll("circle")
+    .data(changedPoints)
+    .enter()
+    .append("circle")
+      .attr("cx", function (d) { return x(d.x); } )
+      .attr("cy", function (d) { return y(d.y); } )
+      .attr("r", 5)
+      .style("fill", "#69b3a2")
+      .style("fill", function (d) { return color(d.label) } )
+      .classed("projection", function (d) { return d.is_trained=='yes' } )
+  }
+  
+  // Update table cells
+  function drawTable(data) {
+  
+    let mse_dist_selected_1 = data['0']['qm_mse_selected_pr1'];
+        mse_dist_all_2 = data['0']['qm_mse_all_points_pr2'];
+        mse_dist_selected_2 = data['0']['qm_mse_selected_pr2'];      
+  
+    document.getElementById("mse_dist_selected_1").innerHTML = mse_dist_selected_1;
+    document.getElementById("mse_dist_all_2").innerHTML = mse_dist_all_2;
+    document.getElementById("mse_dist_selected_2").innerHTML = mse_dist_selected_2;
+  } 
+  
+  // Fetch data to local server
+  function submitData() {
+    d3.json("http://127.0.0.1:5000/model/" + model_url, {
+      method: 'post',
+      headers: {"Content-type": "application/json; charset=UTF-8"},
+      body: JSON.stringify(selectedData)    
+  }).then((response) => {
+      drawGraph2(response);
+      drawGraph3(response);
+      //drawGraph4(response);
+      drawTable(response);
+      return response;
+    });
+  }
+  
+  drawGraph(graphData);
+  
+</script>
+
+{% endblock%}
