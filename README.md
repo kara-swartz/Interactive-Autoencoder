@@ -38,6 +38,8 @@ flask run
 
 The central element of the visual interactive system is the web application server, which is developed using the Flask web framework. The PyTorch framework is used to develop neural network models. We used the D3.js JavaScript library to implement interactive visualization.
 
+![Image of System Design](https://github.com/kara-swartz/Interactive-Autoencoder/blob/main/app/static/images/system_design.png)
+
 After the user selects the neural network model and data set, the Flask server calls the script to start the training of this model. AE or VAE model converts the input data into a two-dimensional representation. The latent space is displayed on the first plot. Further, the user selects the area of interest, and then the Flask server forwards the selected points to the neural network input for additional training.
 
 The neural network model provides training on the selected points and calculates the values of quality measures. Lastly, the server submits the new latent representation in the visualization. Javascript function separates the selected points from the remaining points and then renders them in the second and third scatter plots.
