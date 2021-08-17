@@ -6,6 +6,10 @@ Here we present a visualization system for visual interactive latent space explo
 
 In addition to the AE, the system visualizes the latent space obtained by the Variational Autoencoder (VAE), a generative neural network that learns the probabilistic distribution of input data. Thus, we present two neural network models that have been trained on different data sets, such as iris, wine quality, air quality, and MNIST.
 
+## Motivation
+
+To better understand the Autoencoder (AE) and Variational Autoencoder (VAE) training process, the interactive system visualizes the latent space. The data analyst can select the area of interest and conduct additional training of the model based on the selected points as the initial values. Thus, the data analyst can observe changes in the distribution of the resulting latent space. We assume that additional training of the neural network on the selected points should lead to more accurate results for this region. At the same time, the overall accuracy of all points in the latent space may deteriorate.
+
 ## Directory Structure
 
 ```
@@ -29,6 +33,14 @@ Run flask in debugging mode:
 export FLASK_ENV=development
 flask run
 ```
+
+## System Design
+
+The central element of the visual interactive system is the web application server, which is developed using the Flask web framework. The PyTorch framework is used to develop neural network models. We used the D3.js JavaScript library to implement interactive visualization.
+
+After the user selects the neural network model and data set, the Flask server calls the script to start the training of this model. AE or VAE model converts the input data into a two-dimensional representation. The latent space is displayed on the first plot. Further, the user selects the area of interest, and then the Flask server forwards the selected points to the neural network input for additional training.
+
+The neural network model provides training on the selected points and calculates the values of quality measures. Lastly, the server submits the new latent representation in the visualization. Javascript function separates the selected points from the remaining points and then renders them in the second and third scatter plots.
 
 ## Core literature and resources
 
