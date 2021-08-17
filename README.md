@@ -6,10 +6,6 @@ Here we present a visualization system for visual interactive latent space explo
 
 In addition to the AE, the system visualizes the latent space obtained by the Variational Autoencoder (VAE), a generative neural network that learns the probabilistic distribution of input data. Thus, we present two neural network models that have been trained on different data sets, such as iris, wine quality, air quality, and MNIST.
 
-## Motivation
-
-To better understand the Autoencoder (AE) and Variational Autoencoder (VAE) training process, the interactive system visualizes the latent space. The data analyst can select the area of interest and conduct additional training of the model based on the selected points as the initial values. Thus, the data analyst can observe changes in the distribution of the resulting latent space. We assume that additional training of the neural network on the selected points should lead to more accurate results for this region. At the same time, the overall accuracy of all points in the latent space may deteriorate.
-
 ## Directory Structure
 
 ```
