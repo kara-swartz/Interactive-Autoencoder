@@ -40,6 +40,25 @@ After the user selects the neural network model and data set, the Flask server c
 
 The neural network model provides training on the selected points and calculates the values of quality measures. Lastly, the server submits the new latent representation in the visualization. Javascript function separates the selected points from the remaining points and then renders them in the second and third scatter plots.
 
+## System Interface
+
+The first scatter plot shows the latent space produced after training the AE or VAE network. The second scatter plot shows only the projection for the selected points. The third scatter plot displays projections of all points.
+![Image of System Interface](https://github.com/kara-swartz/Interactive-Autoencoder/blob/main/app/static/images/system_interface.png)
+
+Once the user presses the "Submit" button, the selected points are forwarded to the neural network input. After neural network training based on selected points is finished, the second plot shows the projection for these points. Since this scatter plot shows only the projection for the selected points, the user can observe in detail the distribution of points. This is especially important when the selected area of interest is small and the remaining points may overlap the selected points. Finally, the third scatter plot displays projections of all points.
+
+
+![The latent space obtained after ten training repetitions](https://github.com/kara-swartz/Interactive-Autoencoder/blob/main/app/static/images/vae_mnist_50_10.png)
+*The latent space obtained after ten training repetitions.*
+
+Results of AE after ten repetitions             |  Results of AE after ten repetitions
+:-------------------------:|:-------------------------:
+![](https://github.com/kara-swartz/Interactive-Autoencoder/blob/main/app/static/images/ae_sample_170420063531_learn.png)  |  ![](https://github.com/kara-swartz/Interactive-Autoencoder/blob/main/app/static/images/ae_sample_170420065010_proj.png)
+
+
+Results of AE after ten repetitions for MNIST data with the brush selection. (a) The visualization shows the results obtained after selecting a large area of interest except for points in clusters 6, 1, and 8. (b) The reconstructed image that was produced after the AE model was trained in the input data. The digits in the image are easily recognizable. (c) The reconstructed image that was produced after the AE model performed ten additional training on the selected points. The digits in the image are distinguishable, except for the digits 6 and 8, which were not in the area of interest.
+
+
 ## Core literature and resources
 
 ### Theoretical framework
