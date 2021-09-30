@@ -22,7 +22,7 @@ interactive-autoencoder
 |   |-- app.py
 ```
 
-## Run Flask Ap
+## Run Flask App
 
 Run flask in debugging mode:
 ```
